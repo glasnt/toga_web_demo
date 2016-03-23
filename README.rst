@@ -6,7 +6,9 @@ A demonstrator of the Toga UI toolkit, deployed to the web as a platform.
 Quickstart
 ----------
 
+The code is `deployed on PythonAnyware`_ to see how it looks when it runs.
 
+.. _deployed on PythonAnyware: http://freakboy3742.pythonanywhere.com/
 
 Community
 ---------
