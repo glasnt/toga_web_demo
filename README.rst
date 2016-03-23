@@ -6,7 +6,12 @@ A demonstrator of the Toga UI toolkit, deployed to the web as a platform.
 Quickstart
 ----------
 
-The code is `deployed on PythonAnyware`_ to see how it looks when it runs.
+If you want to see what a Toga application looks like, the key file is
+`example.py`_ - this is the definition of the Toga application.
+
+.. _example.py: https://github.com/freakboy3742/toga_web_demo/blob/master/example.py
+
+If you want to see it running, the code is `deployed on PythonAnyware`_.
 
 .. _deployed on PythonAnyware: http://freakboy3742.pythonanywhere.com/
 
