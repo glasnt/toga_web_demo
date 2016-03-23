@@ -1,0 +1,4 @@
+django==1.9
+djangobower
+rest_framework
+-e git+git@github.com:pybee/toga.git@38ad801ad1ed40dd9f89fd35104d24d66c756659#egg=toga-colosseum
