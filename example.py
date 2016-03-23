@@ -1,11 +1,8 @@
-
 import toga
 
 
 class Example(toga.App):
     def startup(self):
-        # self.webview = toga.WebView(flex=1)
-
         self.list = toga.List(widget_id='todo', source='todo-list')
         self.input = toga.TextInput(widget_id='data', placeholder="new todo", flex=1, margin=5)
 
@@ -22,7 +19,4 @@ class Example(toga.App):
         self.main_window.content = container
 
     def add_entry(self, widget):
-        print("LIST", self.list)
-        print("INPUT", self.input)
-        print("VALUE", self.input.value())
         self.list.add(self.input.value())

@@ -53,10 +53,6 @@ class App:
 
     @property
     def ports(self):
-        print("PORTS")
-        for name, widget in self.__dict__.items():
-            print("%s, %s -> %s" % (name, widget, isinstance(widget, Widget)))
-
         return {
             name: widget.widget_id
             for name, widget in self.__dict__.items()
