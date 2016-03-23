@@ -1,4 +1,4 @@
 django==1.9
-django-bower
-rest_framework
+django-bower==5.1.0
+djangorestframework==3.3.2
 -e git+git@github.com:pybee/toga.git@38ad801ad1ed40dd9f89fd35104d24d66c756659#egg=toga-colosseum
