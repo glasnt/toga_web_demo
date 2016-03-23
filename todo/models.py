@@ -10,7 +10,4 @@ class Todo(models.Model):
         ordering = ('created',)
 
     def __str__(self):
-        return 'TODO: %s%s' % (
-            self.description,
-            ' (done)' if self.completed else ''
-        )
+        return self.description
