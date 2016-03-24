@@ -19,4 +19,10 @@ class Example(toga.App):
         self.main_window.content = container
 
     def add_entry(self, widget):
+        toga.post(self.list.create_url, {
+            'description': self.input.value(),
+            'completed': False,
+        })
+
         self.list.add(self.input.value())
+        self.input.clear()

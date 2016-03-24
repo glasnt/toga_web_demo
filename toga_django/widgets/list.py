@@ -47,7 +47,8 @@ class List(Widget):
 
         return TogaList(
             widget_id=self.widget_id,
-            children=children
+            children=children,
+            create_url=reverse(self.source)
         )
 
     def add(self, child):

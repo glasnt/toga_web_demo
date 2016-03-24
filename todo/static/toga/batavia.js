@@ -61,6 +61,7 @@ batavia.core.Dict.prototype.items = function() {
     return result;
 };
 
+
 /*************************************************************************
  * Modify Array to behave like a Python List
  *************************************************************************/
@@ -2889,7 +2890,7 @@ batavia.builtins.list = function() {
 };
 
 batavia.builtins.locals = function() {
-    throw new batavia.builtins.NotImplementedError("Builtin Batavia function 'locals' not implemented");
+    return this.frame.f_locals;
 };
 
 batavia.builtins.long = function() {
@@ -3343,7 +3344,7 @@ batavia.builtins.ZeroDivisionError.prototype = Object.create(batavia.builtins.Ba
 
 
 batavia.core.Frame = function(kwargs) {
-    var v;
+    var v, i;
 
     this.f_code = kwargs.f_code;
     this.f_globals = kwargs.f_globals;
@@ -3368,11 +3369,12 @@ batavia.core.Frame = function(kwargs) {
         if (this.f_back && !this.f_back.cells) {
             this.f_back.cells = {};
         }
-        for (v in this.f_code.co_cellvars) {
+        for (i = 0; i < this.f_code.co_cellvars.length; i++) {
             // Make a cell for the variable in our locals, or null.
-            cell = new Cell(this.f_locals[v]);
+            v = this.f_code.co_cellvars[i];
+            this.cells[v] = new batavia.core.Cell(this.f_locals[v]);
             if (this.f_back) {
-                this.f_back.cells[v] = this.cells[v] = cell;
+                this.f_back.cells[v] = this.cells[v];
             }
         }
     } else {
@@ -3383,7 +3385,8 @@ batavia.core.Frame = function(kwargs) {
         if (!this.cells) {
             this.cells = {};
         }
-        for (v in this.f_code.co_freevars) {
+        for (i = 0; i < this.f_code.co_freevars.length; i++) {
+            v = this.f_code.co_freevars[i];
             assert(this.cells !== null);
             assert(this.f_back.cells, "f_back.cells: " + this.f_back.cells);
             this.cells[v] = this.f_back.cells[v];
@@ -3529,7 +3532,7 @@ batavia.VirtualMachine.prototype.run = function(tag, args) {
  *
  * Accepts a DOM id for an element containing base64 encoded bytecode.
  */
-batavia.VirtualMachine.prototype.run_method = function(tag, args, kwargs) {
+batavia.VirtualMachine.prototype.run_method = function(tag, args, kwargs, f_locals, f_globals) {
     kwargs = kwargs || new batavia.core.Dict();
     args = args || [];
     var payload = document.getElementById('batavia-' + tag).text.replace(/(\r\n|\n|\r)/gm, "").trim();
@@ -3545,9 +3548,12 @@ batavia.VirtualMachine.prototype.run_method = function(tag, args, kwargs) {
     // Run the code
     return this.run_code({
         'code': code,
-        'callargs': callargs
+        'callargs': callargs,
+        'f_locals': f_locals,
+        'f_globals': f_globals
     });
 };
+
 /*
  */
 batavia.VirtualMachine.prototype.PyErr_Occurred = function() {
@@ -4140,7 +4146,7 @@ batavia.VirtualMachine.prototype.byte_BUILD_MAP = function(size) {
 
 batavia.VirtualMachine.prototype.byte_STORE_MAP = function() {
     var items = this.popn(3);
-    items[0][items[1]] = items[2];
+    items[0][items[2]] = items[1];
     this.push(items[0]);
 };
 
@@ -4459,7 +4465,7 @@ batavia.VirtualMachine.prototype.byte_MAKE_CLOSURE = function(argc) {
     var name = this.pop();
     var items = this.popn(2);
     var defaults = this.popn(argc);
-    var fn = Function(name, items[1], this.frame.f_globals, defaults, items[0], this);
+    var fn = new batavia.core.Function(name, items[1], this.frame.f_globals, defaults, items[0], this);
     this.push(fn);
 };
 

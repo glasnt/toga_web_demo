@@ -1,4 +1,13 @@
 
+_counter = 1000
+
+
+def next_widget_id():
+    global _counter
+    _counter += 1
+    return 'NEW%s' % _counter
+
+
 class App:
     def __init__(self, name, app_id, ports=None):
         self.name = name
@@ -158,6 +167,9 @@ class SimpleListElement:
             self.content
         )
 
+    def text(self, value):
+        self.impl.innerHTML = '<td>%s</td>' % value
+
 
 def bootstrap_SimpleListElement(element):
     widget = SimpleListElement(element.id, element.innerHTML)
@@ -167,8 +179,9 @@ def bootstrap_SimpleListElement(element):
 
 
 class List:
-    def __init__(self, widget_id, children, ports=None):
+    def __init__(self, widget_id, children, create_url, ports=None):
         self.widget_id = widget_id
+        self.create_url = create_url
 
         self.children = children
         for child in self.children:
@@ -178,13 +191,14 @@ class List:
 
     def __html__(self):
         lines = [
-            '<table id="%s" data-toga-class="toga.List" data-toga-parent="%s" data-toga-ports="%s" class="table table-striped">' % (
+            '<table id="%s" data-toga-class="toga.List" data-toga-parent="%s" data-toga-ports="%s" data-toga-create-url="%s" class="table table-striped">' % (
                 self.widget_id,
                 self.parent.widget_id,
                 ",".join(
                     "%s=%s" % (name, widget_id)
                     for name, widget_id in self.ports.items()
                 ),
+                self.create_url
             )
         ]
         lines.append('<tbody>')
@@ -195,15 +209,23 @@ class List:
         return '\n'.join(lines)
 
     def add(self, content):
-        child = SimpleListElement('x', content)
+        widget_id = next_widget_id()
+        child = SimpleListElement(widget_id, content)
+
         child.parent = self
         self.impl.children[0].innerHTML += child.__html__()
+
+        child.impl = dom.document.getElementById(widget_id)
+        return child
+
+    def add_waiting(self):
+        self.add('<i class="fa fa-spinner fa-spin"></i>')
 
 
 def bootstrap_List(element):
     children = element.querySelectorAll('[data-toga-parent="' + element.id + '"]')
 
-    widget = List(element.id, children)
+    widget = List(element.id, children, element.dataset.togaCreateUrl)
 
     element.toga = widget
     widget.impl = element
@@ -234,6 +256,9 @@ class TextInput:
 
     def value(self):
         return self.impl.value
+
+    def clear(self):
+        self.impl.value = ''
 
 
 def bootstrap_TextInput(element):

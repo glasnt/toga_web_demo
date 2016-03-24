@@ -14,7 +14,20 @@ var toga = {
                 context = document.getElementById(parts[0]).toga;
                 name = parts[1];
                 return function(evt) {
-                    toga.vm.run_method(name, [context, widget]);
+                    var globals = new batavia.core.Dict({
+                        '__builtins__': batavia.builtins,
+                        '__name__': '__main__',
+                        '__doc__': null,
+                        '__package__': null,
+                    });
+                    var locals = new batavia.core.Dict({
+                        '__builtins__': batavia.builtins,
+                        '__name__': '__main__',
+                        '__doc__': null,
+                        '__package__': null,
+                        'self': context
+                    });
+                    toga.vm.run_method(name, [context, widget], null, locals, globals);
                 };
             } else {
                 return function(evt) {
@@ -22,8 +35,17 @@ var toga = {
                 };
             }
         }
+    },
+
+    post: function(url, payload) {
+        $.post({
+            'url': url,
+            'data': payload,
+        });
     }
 };
+
+batavia.builtins['toga'] = toga;
 
 $(window).load(function() {
     console.log('Create VM...');
