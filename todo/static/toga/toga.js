@@ -29,21 +29,24 @@ $(window).load(function() {
     console.log('Create VM...');
     toga.vm = new batavia.VirtualMachine();
     console.log('Instantiate Toga objects...');
-    $("[data-toga-class]").each(function(index) {
-        console.log("Create " + $(this).data('toga-class') + ':' + this.id);
-        toga.vm.run_method('bootstrap', [this, $(this).data('toga-class')]);
-    });
-
-    $("[data-toga-class]").each(function(index) {
-        console.log("Set ports for " + $(this).data('toga-class') + ":" + this.toga.widget_id);
-        var ports = this.dataset.togaPorts.split(',');
+    var widgets = document.querySelectorAll('[data-toga-class]');
+    var w;
+    // Create widgets
+    for (w = 0; w < widgets.length; w++) {
+        console.log("Create " + widgets[w].dataset.togaClass + ':' + widgets[w].id);
+        toga.vm.run_method('bootstrap', [widgets[w]]);
+    }
+    // Hook up ports
+    for (w = 0; w < widgets.length; w++) {
+        console.log("Set ports for " + widgets[w].dataset.togaClass + ":" + widgets[w].toga.widget_id);
+        var ports = widgets[w].dataset.togaPorts.split(',');
         for (var port = 0; port < ports.length; port++) {
             var parts = ports[port].split('=');
             if (parts.length == 2 && parts[0] !== 'parent') {
-                this.toga.ports[parts[0]] = parts[1];
-                this.toga[parts[0]] = document.getElementById(parts[1]).toga;
+                widgets[w].toga.ports[parts[0]] = parts[1];
+                widgets[w].toga[parts[0]] = document.getElementById(parts[1]).toga;
             }
         }
-    });
+    }
     console.log('Toga is ready.');
 });
