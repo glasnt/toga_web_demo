@@ -39,13 +39,7 @@ class Example(toga.App):
 
     def remove_entry(self, widget):
         if widget.delete_url:
-            print("delete")
-            print(widget.delete_url)
-            print(widget.widget_id)
             toga.delete(widget.delete_url)
-            print('widget', widget)
-            print('widget2', widget.id)
-            print('widget3', widget.widget_url)
             widget.remove()
         else:
             dom.window.alert("Can't delete new item")
