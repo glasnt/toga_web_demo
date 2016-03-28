@@ -3,8 +3,18 @@ import toga
 
 class Example(toga.App):
     def startup(self):
-        self.list = toga.List(widget_id='todo', source='todo-list')
-        self.input = toga.TextInput(widget_id='data', placeholder="new todo", flex=1, margin=5)
+        self.list = toga.List(
+            widget_id='todo',
+            source='todo-list',
+            detail='todo-detail',
+            item_class=toga.SimpleListElement,
+            on_item_press=self.remove_entry
+        )
+        self.input = toga.TextInput(
+            widget_id='data',
+            placeholder="new todo",
+            flex=1, margin=5
+        )
 
         container = toga.Container(
             self.list,
@@ -26,3 +36,16 @@ class Example(toga.App):
 
         self.list.add(self.input.value())
         self.input.clear()
+
+    def remove_entry(self, widget):
+        if widget.delete_url:
+            print("delete")
+            print(widget.delete_url)
+            print(widget.widget_id)
+            toga.delete(widget.delete_url)
+            print('widget', widget)
+            print('widget2', widget.id)
+            print('widget3', widget.widget_url)
+            widget.remove()
+        else:
+            dom.window.alert("Can't delete new item")

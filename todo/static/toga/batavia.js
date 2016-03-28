@@ -30,7 +30,7 @@ String.prototype.startswith = function (str) {
  * Modify Object to behave like a Python Dictionary
  *************************************************************************/
 
-batavia.core.Dict = function(args) {
+batavia.core.Dict = function(args, kwargs) {
     Object.call(this);
     if (args) {
         this.update(args);
@@ -80,7 +80,7 @@ Array.prototype.extend = function(values) {
  * Subclass Object to provide a Set object
  *************************************************************************/
 
-batavia.core.Set = function(args) {
+batavia.core.Set = function(args, kwargs) {
     Object.call(this);
     if (args) {
         this.update(args);
@@ -418,11 +418,7 @@ batavia.make_class = function(args, kwargs) {
     // Now construct the class, based on the constructed local context.
     var klass = function(vm, args, kwargs) {
         if (this.__init__) {
-            for (var attr in Object.getPrototypeOf(this)) {
-                if (this[attr].__call__) {
-                    this[attr].__self__ = this;
-                }
-            }
+            this.__init__.__self__ = this;
             this.__init__.__call__.apply(vm, [args, kwargs]);
         }
     };
@@ -1530,7 +1526,7 @@ batavia.modules.marshal = {
 batavia.modules.inspect = {
     FullArgSpec: function(kwargs) {
         this.args = kwargs.args || [];
-        this.varargs = kwargs.varargs;
+        this.varargs = kwargs.getcallargs;
         this.varkw = kwargs.varkw;
         this.defaults = kwargs.defaults || {};
         this.kwonlyargs = kwargs.kwonlyargs || [];
@@ -1948,7 +1944,7 @@ batavia.modules.inspect = {
             }
         }
 
-        if (num_pos > num_args && varargs.length === 0) {
+        if (num_pos > num_args && (func.argspec.varargs === undefined || func.argspec.varargs.length === 0)) {
             batavia.modules.inspect._too_many(func.__name__, func.argspec.args, func.argspec.kwonlyargs, func.argspec.varargs, num_defaults, num_pos, arg2value);
         }
         if (num_pos < num_args) {
@@ -2638,13 +2634,13 @@ batavia.builtins.__import__ = function(args, kwargs) {
             var frame = this.make_frame({'code': code, 'f_globals': args[1], 'f_locals': null});
             this.run_frame(frame);
 
-            batavia.modules.sys.modules[args[0]] = frame.f_locals;
+            batavia.modules.sys.modules[args[0]] = new batavia.core.Module(frame.f_locals);
             if (args[3] === null) {
                 // import <mod>
                 module = batavia.modules.sys.modules[args[0]];
             } else {
                 // from <mod> import *
-                module = {};
+                module = new batavia.core.Module();
                 for (var n in args[3]) {
                     var name = args[3][n];
                     module[name] = frame.f_locals[name];
@@ -3426,7 +3422,8 @@ batavia.core.Frame.prototype.line_number = function() {
     return line_num;
 };
 batavia.core.Function = function(name, code, globals, defaults, closure, vm) {
-    // this._vm = vm;
+    this.__python__ = true;
+    this._vm = vm;
     this.__code__ = code;
     this.__globals__ = globals;
     this.__defaults__ = defaults;
@@ -3452,6 +3449,25 @@ batavia.core.Function = function(name, code, globals, defaults, closure, vm) {
     this.__call__ = batavia.make_callable(this);
 
     this.argspec = batavia.modules.inspect.getfullargspec(this);
+};
+
+
+batavia.core.Method = function(instance, func) {
+    batavia.core.Function.call(this, func.__name__, func.__code__, func.__globals__, func.__closure__, func._vm);
+    this.__self__ = instance;
+    this.__func__ = func;
+    this.__class__ = instance.__proto__;
+};
+
+batavia.core.Method.prototype = Object.create(Function.prototype);
+
+
+batavia.core.Module = function(locals) {
+    for (var key in locals) {
+        if (locals.hasOwnProperty(key)) {
+            this[key] = locals[key];
+        }
+    }
 };
 
 /*************************************************************************
@@ -3539,7 +3555,7 @@ batavia.VirtualMachine.prototype.run_method = function(tag, args, kwargs, f_loca
     var bytecode = atob(payload);
     var code = batavia.modules.marshal.load_pyc(this, bytecode);
 
-    callargs = new batavia.core.Dict();
+    var callargs = new batavia.core.Dict();
     for (var i = 0; i < args.length; i++) {
         callargs[code.co_varnames[i]] = args[i];
     }
@@ -3947,7 +3963,7 @@ batavia.VirtualMachine.prototype.byte_DUP_TOP = function() {
 };
 
 batavia.VirtualMachine.prototype.byte_DUP_TOPX = function(count) {
-    items = this.popn(count);
+    var items = this.popn(count);
     for (var n = 0; n < 2; n++) {
         for (var i = 0; i < count; i++) {
             this.push(items[i]);
@@ -3956,7 +3972,7 @@ batavia.VirtualMachine.prototype.byte_DUP_TOPX = function(count) {
 };
 
 batavia.VirtualMachine.prototype.byte_DUP_TOP_TWO = function() {
-    items = this.popn(2);
+    var items = this.popn(2);
     this.push(items[0]);
     this.push(items[1]);
     this.push(items[0]);
@@ -3964,20 +3980,20 @@ batavia.VirtualMachine.prototype.byte_DUP_TOP_TWO = function() {
 };
 
 batavia.VirtualMachine.prototype.byte_ROT_TWO = function() {
-    items = this.popn(2);
+    var items = this.popn(2);
     this.push(items[1]);
     this.push(items[0]);
 };
 
 batavia.VirtualMachine.prototype.byte_ROT_THREE = function() {
-    items = this.popn(3);
+    var items = this.popn(3);
     this.push(items[2]);
     this.push(items[0]);
     this.push(items[1]);
 };
 
 batavia.VirtualMachine.prototype.byte_ROT_FOUR = function() {
-    items = this.popn(4);
+    var items = this.popn(4);
     this.push(items[3]);
     this.push(items[0]);
     this.push(items[1]);
@@ -3985,7 +4001,8 @@ batavia.VirtualMachine.prototype.byte_ROT_FOUR = function() {
 };
 
 batavia.VirtualMachine.prototype.byte_LOAD_NAME = function(name) {
-    frame = this.frame;
+    var frame = this.frame;
+    var val;
     if (name in frame.f_locals) {
         val = frame.f_locals[name];
     } else if (name in frame.f_globals) {
@@ -4007,6 +4024,7 @@ batavia.VirtualMachine.prototype.byte_DELETE_NAME = function(name) {
 };
 
 batavia.VirtualMachine.prototype.byte_LOAD_FAST = function(name) {
+    var val;
     if (name in this.frame.f_locals) {
         val = this.frame.f_locals[name];
     } else {
@@ -4052,7 +4070,7 @@ batavia.VirtualMachine.prototype.byte_LOAD_LOCALS = function() {
 };
 
 batavia.VirtualMachine.prototype.unaryOperator = function(op) {
-    x = this.pop();
+    var x = this.pop();
     this.push(batavia.operators[op](x));
 };
 
@@ -4062,7 +4080,7 @@ batavia.VirtualMachine.prototype.binaryOperator = function(op) {
 };
 
 batavia.VirtualMachine.prototype.inplaceOperator = function(op) {
-    items = this.popn(2);
+    var items = this.popn(2);
     this.push(batavia.operators[op](items[0], items[1]));
 };
 
@@ -4096,10 +4114,16 @@ batavia.VirtualMachine.prototype.byte_COMPARE_OP = function(opnum) {
 batavia.VirtualMachine.prototype.byte_LOAD_ATTR = function(attr) {
     var obj = this.pop();
     var val = obj[attr];
-    if (typeof val === 'function') {
-        val = val.bind(obj);
-        val.__python__ == val.__python__;
-        val.__self__ = obj;
+    if (val instanceof batavia.core.Function) {
+        if (!(obj instanceof batavia.core.Module)) {
+            val = new batavia.core.Method(obj, val);
+        }
+    } else if (val instanceof Function) {
+        val = function(fn) {
+            return function(args, kwargs) {
+                return fn.apply(obj, args);
+            };
+        }(val);
     }
     this.push(val);
 };
@@ -4507,25 +4531,20 @@ batavia.VirtualMachine.prototype.call_function = function(arg, args, kwargs) {
         if (func.__self__) {
             posargs.unshift(func.__self__);
         }
+        // FIXME: Work out how to do the class check.
         // The first parameter must be the correct type.
-        if (!isinstance(posargs[0], func.im_class)) {
-            throw 'unbound method ' + func.im_func.__name__ + '()' +
-                ' must be called with ' + func.im_class.__name__ + ' instance ' +
-                'as first argument (got ' + type(posargs[0]).__name__ + ' instance instead)';
-        }
-        func = func.im_func;
+        // if (posargs[0] instanceof func.__class__) {
+        //     throw 'unbound method ' + func.__func__.__name__ + '()' +
+        //         ' must be called with ' + func.__class__.__name__ + ' instance ' +
+        //         'as first argument (got ' + posargs[0].__proto__ + ' instance instead)';
+        // }
+        func = func.__func__.__call__;
     } else if ('__call__' in func) {
         func = func.__call__;
     }
 
-    var retval;
-    // If it's a python method, use the Python calling conventions
-    // Otherwise, use the Javascript convention.
-    if (func.__python__) {
-        retval = func.apply(this, [posargs, namedargs]);
-    } else {
-        retval = func.apply(this, posargs);
-    }
+    var retval = func.apply(this, [posargs, namedargs]);
+
     this.push(retval);
 };
 

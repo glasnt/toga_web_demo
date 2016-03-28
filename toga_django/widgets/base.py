@@ -8,6 +8,14 @@ class Widget(WidgetBase):
         self.is_container = False
         self._in_progress = False
 
+    def handler(self, fn, name):
+        if hasattr(fn, '__self__'):
+            ref = '(%s,%s-%s)' % (fn.__self__.widget_id, self.widget_id, name)
+        else:
+            ref = '%s-%s' % (self.widget_id, name)
+
+        return ref
+
     # def _set_app(self, app):
     #     app.support_module.__dict__[self.IMPL_CLASS.__name__] = self.IMPL_CLASS
 

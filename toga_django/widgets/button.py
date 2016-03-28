@@ -18,18 +18,10 @@ class Button(Widget):
         pass
 
     def materialize(self):
-        if self.on_press:
-            if hasattr(self.on_press, '__self__'):
-                on_press = '(%s,%s-on_press)' % (self.on_press.__self__.widget_id, self.widget_id)
-            else:
-                on_press = '%s-on_press' % self.widget_id
-        else:
-            on_press = None
-
         return TogaButton(
             widget_id=self.widget_id,
             label=self.label,
-            on_press=on_press
+            on_press=self.handler(self.on_press, 'on_press') if self.on_press else None
         )
 
     def _set_window(self, window):

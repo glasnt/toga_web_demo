@@ -148,15 +148,17 @@ def bootstrap_Button(element):
 
 
 class SimpleListElement:
-    def __init__(self, widget_id, content, ports=None):
+    def __init__(self, widget_id, content, delete_url=None, on_press=None, ports=None):
         self.widget_id = widget_id
 
         self.content = content
+        self.delete_url = delete_url
+        self.on_press = on_press
 
         self.ports = ports if ports else {}
 
     def __html__(self):
-        return '<tr id="%s" data-toga-class="toga.SimpleListElement" data-toga-parent="%s" data-toga-ports="%s"><td>%s</td></tr>' % (
+        return '<tr id="%s" data-toga-class="toga.SimpleListElement" data-toga-parent="%s" data-toga-ports="%s" data-toga-delete-url="%s" data-toga-on-press="%s"><td>%s</td><td style="width:1em;">%s</td></tr>' % (
             self.widget_id,
             self.parent.widget_id,
             # ",".join(
@@ -164,24 +166,39 @@ class SimpleListElement:
             #     for name, widget_id in self.ports.items()
             # ),
             '',
-            self.content
+            self.delete_url if self.delete_url else '',
+            self.parent.on_item_press if self.parent.on_item_press else '',
+            self.content,
+            '<i class="fa fa-times"></i>' if self.delete_url else ''
         )
 
     def text(self, value):
         self.impl.innerHTML = '<td>%s</td>' % value
 
+    def remove(self):
+        print("SELF", self)
+        print("SELF ID", self.widget_id)
+        print("IMPL ID", self.impl.id)
+        print("IMPL", self.impl)
+        print("PARENT", self.impl.parentNode.id)
+        self.impl.parentNode.removeChild(self.impl)
+
 
 def bootstrap_SimpleListElement(element):
-    widget = SimpleListElement(element.id, element.innerHTML)
+    widget = SimpleListElement(element.id, element.innerHTML, element.dataset.togaDeleteUrl)
+
+    fn = dom.window.toga.handler(element.dataset.togaOnPress, widget)
+    element.addEventListener('click', fn)
 
     element.toga = widget
     widget.impl = element
 
 
 class List:
-    def __init__(self, widget_id, children, create_url, ports=None):
+    def __init__(self, widget_id, children, create_url, on_item_press=None, ports=None):
         self.widget_id = widget_id
         self.create_url = create_url
+        self.on_item_press = on_item_press
 
         self.children = children
         for child in self.children:
@@ -191,14 +208,15 @@ class List:
 
     def __html__(self):
         lines = [
-            '<table id="%s" data-toga-class="toga.List" data-toga-parent="%s" data-toga-ports="%s" data-toga-create-url="%s" class="table table-striped">' % (
+            '<table id="%s" data-toga-class="toga.List" data-toga-parent="%s" data-toga-ports="%s" data-toga-create-url="%s" data-toga-on-item-press="%s" class="table table-striped">' % (
                 self.widget_id,
                 self.parent.widget_id,
                 ",".join(
                     "%s=%s" % (name, widget_id)
                     for name, widget_id in self.ports.items()
                 ),
-                self.create_url
+                self.create_url,
+                self.on_item_press
             )
         ]
         lines.append('<tbody>')
@@ -210,12 +228,16 @@ class List:
 
     def add(self, content):
         widget_id = next_widget_id()
-        child = SimpleListElement(widget_id, content)
+        child = SimpleListElement(widget_id, content, on_press=self.on_item_press)
 
         child.parent = self
         self.impl.children[0].innerHTML += child.__html__()
 
         child.impl = dom.document.getElementById(widget_id)
+
+        fn = dom.window.toga.handler(self.on_item_press, child)
+        child.impl.addEventListener('click', fn)
+
         return child
 
     def add_waiting(self):
@@ -225,7 +247,7 @@ class List:
 def bootstrap_List(element):
     children = element.querySelectorAll('[data-toga-parent="' + element.id + '"]')
 
-    widget = List(element.id, children, element.dataset.togaCreateUrl)
+    widget = List(element.id, children, element.dataset.togaCreateUrl, element.dataset.togaOnItemPress)
 
     element.toga = widget
     widget.impl = element

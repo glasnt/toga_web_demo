@@ -13,22 +13,24 @@ var toga = {
                 var parts = ref.slice(1,-1).split(',');
                 context = document.getElementById(parts[0]).toga;
                 name = parts[1];
-                return function(evt) {
-                    var globals = new batavia.core.Dict({
-                        '__builtins__': batavia.builtins,
-                        '__name__': '__main__',
-                        '__doc__': null,
-                        '__package__': null,
-                    });
-                    var locals = new batavia.core.Dict({
-                        '__builtins__': batavia.builtins,
-                        '__name__': '__main__',
-                        '__doc__': null,
-                        '__package__': null,
-                        'self': context
-                    });
-                    toga.vm.run_method(name, [context, widget], null, locals, globals);
-                };
+                return function(widget) {
+                    return function(evt) {
+                        var globals = new batavia.core.Dict({
+                            '__builtins__': batavia.builtins,
+                            '__name__': '__main__',
+                            '__doc__': null,
+                            '__package__': null,
+                        });
+                        var locals = new batavia.core.Dict({
+                            '__builtins__': batavia.builtins,
+                            '__name__': '__main__',
+                            '__doc__': null,
+                            '__package__': null,
+                            'self': context
+                        });
+                        toga.vm.run_method(name, [context, widget], null, locals, globals);
+                    };
+                }(widget);
             } else {
                 return function(evt) {
                     toga.vm.run_method(name, [widget]);
@@ -38,9 +40,17 @@ var toga = {
     },
 
     post: function(url, payload) {
-        $.post({
+        $.ajax({
             'url': url,
+            'type': 'post',
             'data': payload,
+        });
+    },
+
+    delete: function(url) {
+        $.ajax({
+            'url': url,
+            'type': 'delete'
         });
     }
 };

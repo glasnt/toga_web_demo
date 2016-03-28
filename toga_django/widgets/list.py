@@ -5,10 +5,11 @@ from ..libs import List as TogaList, SimpleListElement as TogaSimpleListElement
 
 
 class SimpleListElement(Widget):
-    def __init__(self, content, **style):
+    def __init__(self, content, detail=None, **style):
         super(SimpleListElement, self).__init__(**style)
 
         self.content = content
+        self.detail = detail
 
         self.startup()
 
@@ -18,16 +19,26 @@ class SimpleListElement(Widget):
     def materialize(self):
         return TogaSimpleListElement(
             widget_id=self.widget_id,
-            content=self.content
+            content=self.content,
+            delete_url=reverse(self.detail, kwargs={'pk': self.content.id})
         )
+
+    def _set_window(self, window):
+        super()._set_window(window)
+        if self.on_press:
+            self.window.callbacks[(self.widget_id, 'on_press')] = self.on_press
 
 
 class List(Widget):
     IMPL_CLASS = TogaList
 
-    def __init__(self, source=None, **style):
+    def __init__(self, source=None, detail=None, item_class=None, on_item_press=None, **style):
         super(List, self).__init__(**style)
         self.source = source
+        self.detail = detail
+        self.item_class = item_class
+        self.on_item_press = on_item_press
+
         self.children = []
 
         self.startup()
@@ -40,7 +51,7 @@ class List(Widget):
         if self.source:
             api_view = resolve(reverse(self.source)).func
             for child in api_view.view_class().get_queryset():
-                children.append(SimpleListElement(child).materialize())
+                children.append(self.item_class(child, self.detail).materialize())
         else:
             for child in self.children:
                 children.add(child.materialize())
@@ -48,23 +59,25 @@ class List(Widget):
         return TogaList(
             widget_id=self.widget_id,
             children=children,
-            create_url=reverse(self.source)
+            create_url=reverse(self.source),
+            on_item_press=self.handler(self.on_item_press, 'on_item_press') if self.on_item_press else None
         )
 
-    def add(self, child):
+    def add(self, content):
         if self.source:
             raise Exception("Can't manually add to an API-sourced list")
-        self.children.append(SimpleListElement(child))
+        self.children.append(self.item_class(content, self.detail))
 
     def _set_app(self, app):
         for child in self.children:
             child.app = app
-        # app.support_module.__dict__['TogaList'] = TogaList
-        # app.support_module.__dict__['TogaSimpleListElement'] = TogaSimpleListElement
 
     def _set_window(self, window):
         for child in self.children:
             child.window = window
+
+        if self.on_item_press:
+            self.window.callbacks[(self.widget_id, 'on_item_press')] = self.on_item_press
 
     # def _hint_size(self, width, height, min_width=None, min_height=None):
     #     if width is not None:
