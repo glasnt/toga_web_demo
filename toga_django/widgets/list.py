@@ -1,4 +1,5 @@
 from django.core.urlresolvers import reverse, resolve
+from django.utils.html import escape
 
 from .base import Widget
 from ..libs import List as TogaList, SimpleListElement as TogaSimpleListElement
@@ -19,7 +20,7 @@ class SimpleListElement(Widget):
     def materialize(self):
         return TogaSimpleListElement(
             widget_id=self.widget_id,
-            content=self.content,
+            content=escape(self.content),
             delete_url=reverse(self.detail, kwargs={'pk': self.content.id})
         )
 
