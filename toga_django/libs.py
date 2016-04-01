@@ -176,11 +176,6 @@ class SimpleListElement:
         self.impl.innerHTML = '<td>%s</td>' % value
 
     def remove(self):
-        print("SELF", self)
-        print("SELF ID", self.widget_id)
-        print("IMPL ID", self.impl.id)
-        print("IMPL", self.impl)
-        print("PARENT", self.impl.parentNode.id)
         self.impl.parentNode.removeChild(self.impl)
 
 
