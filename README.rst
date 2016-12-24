@@ -1,5 +1,19 @@
+
+topic/make-it-go changes
+-----------
+
+There are a few manual changes to the a100fa6 version of upstream that are required:
+
+ - Python 3.5.2 virtual env required
+ - pip install -r requirements.txt
+ - pip uninstall rubicon-objc toga-cocoa toga-core
+ - python manage.py migrate
+ - python manage.py runserver
+
+
 Toga-web-demo
 =============
+
 
 A demonstrator of the Toga UI toolkit, deployed to the web as a platform.
 
